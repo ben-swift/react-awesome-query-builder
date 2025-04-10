@@ -1,4 +1,6 @@
 # Changelog
+- 6.6.15
+  - Fix import switch from JsonLogic (PR #1235) (issue #1230)
 - 6.6.14
   - Fixed import from JsonLogic when like op is used inside group with some group op (PR #1225) (issue #1221)
   - Support React 19 (PR #1229) (issue #1205)
