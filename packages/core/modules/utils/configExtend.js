@@ -53,7 +53,7 @@ export const extendConfig = (config, configId, canCompile = true) => {
 
   const { caseValueField } = config.settings;
   if (caseValueField) {
-    extendFieldConfig(caseValueField, config, [], false, true);
+    extendFieldConfig(caseValueField, config, [], false, false, true);
   }
 
   const momentLocale = config.settings.locale.moment;
@@ -123,12 +123,13 @@ function extendTypeConfig(type, typeConfig, config) {
     typeConfig.defaultOperator = defaultOperator;
 }
 
-function extendFieldsConfig(subconfig, config, path = []) {
+function extendFieldsConfig(subconfig, config, path = [], isInsideGroup = false) {
   for (let field in subconfig) {
     const fieldPathArr = [...path, field];
-    extendFieldConfig(subconfig[field], config, fieldPathArr);
+    extendFieldConfig(subconfig[field], config, fieldPathArr, isInsideGroup);
+    const isGroup = subconfig[field].type === "!group";
     if (subconfig[field].subfields) {
-      extendFieldsConfig(subconfig[field].subfields, config, fieldPathArr);
+      extendFieldsConfig(subconfig[field].subfields, config, fieldPathArr, isInsideGroup || isGroup);
     }
   }
 }
@@ -146,11 +147,11 @@ function extendFuncsConfig(subconfig, config, path = []) {
         config.__funcsCntByType[funcDef.returnType] = 0;
       config.__funcsCntByType[funcDef.returnType]++;
     }
-    extendFieldConfig(funcDef, config, funcPathArr, false);
+    extendFieldConfig(funcDef, config, funcPathArr, false, false);
 
     if (funcDef.args) {
       for (let argKey in funcDef.args) {
-        extendFieldConfig(funcDef.args[argKey], config, [...funcPathArr, argKey], true);
+        extendFieldConfig(funcDef.args[argKey], config, [...funcPathArr, argKey], false, true);
       }
       // isOptional can be only in the end
       const argKeys = Object.keys(funcDef.args);
@@ -203,7 +204,7 @@ function normalizeFieldSettings(fieldConfig, config, type) {
   }
 }
 
-function extendFieldConfig(fieldConfig, config, path = [], isFuncArg = false, isCaseValue = false) {
+function extendFieldConfig(fieldConfig, config, path = [], isInsideGroup = false, isFuncArg = false, isCaseValue = false) {
   let { showLabels, fieldSeparator } = config.settings;
   fieldSeparator = fieldSeparator ?? ".";
   const argKey = path[path.length - 1];
@@ -230,10 +231,12 @@ function extendFieldConfig(fieldConfig, config, path = [], isFuncArg = false, is
     return;
   }
 
-  if (!isFuncArg && !isFunc && !isCaseValue) {
+  if (!isFuncArg && !isFunc && !isCaseValue && !isInsideGroup) {
     if (!config.__fieldsCntByType[type])
       config.__fieldsCntByType[type] = 0;
     config.__fieldsCntByType[type]++;
+
+    // todo: fill __fieldsCntByListValuesType (for select fields)
   }
 
   if (isFuncArg) {
